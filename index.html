@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Outfit Picker by the Style Professor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 20px;
+      max-width: 800px;
+    }
+
+    .columns {
+      display: flex;
+      gap: 20px;
+    }
+
+    .column {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-height: 230px;
+    }
+
+    .column h2 {
+      font-size: 1.05rem;
+      margin: 0 0 10px 0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+
+    .item-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+      background: #fafafa;
+    }
+
+    .item-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      border-color: #007acc;
+    }
+
+    .item-card.selected {
+      border-color: #007acc;
+      box-shadow: 0 0 0 2px rgba(0,122,204,0.3);
+      background: #f0f8ff;
+    }
+
+    /* =9 same size thumbnails */
+    .item-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: contain;
+      border-radius: 6px;
+      display: block;
+      margin-bottom: 6px;
+      background: #ffffff;
+    }
+
+    .item-label {
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .hint {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    .empty-message {
+      font-size: 0.9rem;
+      color: #999;
+      font-style: italic;
+    }
+
+    /* ===== POPUP MODAL ===== */
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      position: relative;
+      background: #ffffff;
+      padding: 16px 20px 20px;
+      border-radius: 12px;
+      max-width: 640px;
+      width: 90%;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      border: none;
+      background: transparent;
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .combo-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .combo-top-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .combo-item {
+      text-align: center;
+    }
+
+    .combo-item img {
+      width: 150px;
+      height: 150px;
+      object-fit: contain;
+      background: #f5f5f5;
+      border-radius: 10px;
+      margin-bottom: 4px;
+    }
+
+    .combo-item span {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+      /* ========= RESPONSIVE LAYOUT ========= */
+
+/* Medium screens (tablets): 2 columns instead of 4 */
+@media (max-width: 1024px) {
+  .columns {
+    flex-wrap: wrap;
+  }
+
+  .column {
+    flex: 0 0 calc(50% - 10px); /* two columns per row */
+    min-height: auto;
+  }
+}
+
+/* Small screens (phones): stack columns vertically */
+@media (max-width: 700px) {
+  body {
+    margin: 10px;
+  }
+
+  .columns {
+    flex-direction: column;
+  }
+
+  .column {
+    flex: 1 0 auto;
+    min-height: auto;
+  }
+
+  .item-card img {
+    height: 120px;        /* a bit shorter so scrolling feels lighter */
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;     /* dont overflow screen height */
+    overflow-y: auto;
+    padding: 12px 14px 16px;
+  }
+
+  .combo-item img {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <h1>Outfit Picker by the Style Professor</h1>
+  <p>
+    '.*1 <strong>,'CJ*</strong> &rarr; <strong>(F7DHF</strong> &rarr; <strong>BEJ5</strong> &rarr; <strong>-0'!</strong>  
+    H(9/ E' *.*'1 'D-0'! G*7D9DC F'A0) AJG' 'D#1(9 5H1 E9 (96 ('D*1*J( 'DDJ *-(QG.
+  </p>
+
+  <div class="columns">
+    <div class="column">
+      <h2>Blazer</h2>
+      <div id="jackets-container"></div>
+    </div>
+
+    <div class="column">
+      <h2>Pants</h2>
+      <div class="hint">Choose a blazer first.</div>
+      <div id="pants-container"></div>
+    </div>
+
+    <div class="column">
+      <h2>Shirts</h2>
+      <div class="hint">Choose pants to see matching shirts.</div>
+      <div id="shirts-container"></div>
+    </div>
+
+    <div class="column">
+      <h2>Shoes</h2>
+      <div class="hint">Choose a shirt, then click on a shoe to see the full combo.</div>
+      <div id="shoes-container"></div>
+    </div>
+  </div>
+
+  <!-- ===== POPUP MODAL MARKUP ===== -->
+  <div id="combo-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="modal-close" class="modal-close">&times;</button>
+      <h2>Selected Outfit</h2>
+      <div class="combo-layout">
+  <div class="combo-top-row">
+    <div class="combo-item">
+      <img id="combo-blazer-img"
+           src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           alt="Blazer">
+    </div>
+    <div class="combo-item">
+      <img id="combo-shirt-img"
+           src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           alt="Shirt">
+    </div>
+  </div>
+  <div class="combo-item">
+    <img id="combo-pants-img"
+         src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+         alt="Pants">
+  </div>
+  <div class="combo-item">
+    <img id="combo-shoes-img"
+         src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+         alt="Shoes">
+  </div>
+</div>
+
+    </div>
+  </div>
+
+  <script>
+    // -------- DATA MODEL (updated to new decision tree) --------
+    const shirts = {
+      "white-shirt":      { key: "white-shirt",      label: "White Shirt",       img: "images/white-shirt.jpg" },
+      "light-blue-shirt": { key: "light-blue-shirt", label: "Light Blue Shirt",  img: "images/light-blue-shirt.jpg" },
+      "blue-strip-shirt": { key: "blue-strip-shirt", label: "Blue Stripe Shirt", img: "images/blue-strip-shirt.jpg" },
+      "pink-shirt":       { key: "pink-shirt",       label: "Pink Shirt",        img: "images/pink-shirt.jpg" },
+      "grey-shirt":       { key: "grey-shirt",       label: "Grey Shirt",        img: "images/grey-shirt.jpg" },
+      "black-shirt":      { key: "black-shirt",      label: "Black Shirt",       img: "images/black-shirt.jpg" }
+    };
+
+    const shoes = {
+      "black-shoes":        { label: "Black Shoes",        img: "images/black-shoes.jpg" },
+      "medium-brown-shoes": { label: "Medium Brown Shoes", img: "images/medium-brown-shoes.jpg" },
+      "dark-brown-shoes":   { label: "Dark Brown Shoes",   img: "images/dark-brown-shoes.jpg" }
+    };
+
+    const outfitData = {
+      "navy-jacket": {
+        label: "Navy Blazer",
+        img: "images/navy-jacket.jpg",
+        pants: {
+          // 1) BLACK PANTS
+          // Shirts: White, Light blue, Blue strip, Black, Pink, Grey
+          // Shoes: Black only
+          "black-pants": {
+            label: "Black Pants",
+            img: "images/black-pants.jpg",
+            shirts: [
+              shirts["white-shirt"],
+              shirts["light-blue-shirt"],
+              shirts["blue-strip-shirt"],
+              shirts["black-shirt"],
+              shirts["pink-shirt"],
+              shirts["grey-shirt"]
+            ],
+            shoes: [
+              shoes["black-shoes"]
+            ]
+          },
+
+          // 2) LIGHT GREY (mid-grey image)
+          // Shirts: White, Light blue, Blue strip, Black
+          // Shoes:
+          //   - White / Light blue / Blue strip -> Black, Medium brown, Dark brown
+          //   - Black shirt -> Black only
+          "mid-grey-pants": {
+            label: "Light Grey Pants",
+            img: "images/mid-grey-pants.jpg",
+            shirts: [
+              shirts["white-shirt"],
+              shirts["light-blue-shirt"],
+              shirts["blue-strip-shirt"],
+              shirts["black-shirt"]
+            ],
+            shoes: [
+              shoes["black-shoes"],
+              shoes["medium-brown-shoes"],
+              shoes["dark-brown-shoes"]
+            ],
+            shoesByShirt: {
+              "black-shirt": [
+                shoes["black-shoes"]
+              ]
+            }
+          },
+
+          // 3) DARK GREY
+          // Shirts: White, Light blue, Blue strip, Pink
+          // Shoes: Black, Dark brown (for all these shirts)
+          "dark-grey-pants": {
+            label: "Dark Grey Pants",
+            img: "images/dark-grey-pants.jpg",
+            shirts: [
+              shirts["white-shirt"],
+              shirts["light-blue-shirt"],
+              shirts["blue-strip-shirt"],
+              shirts["pink-shirt"]
+            ],
+            shoes: [
+              shoes["black-shoes"],
+              shoes["dark-brown-shoes"]
+            ]
+          },
+
+          // 4) BEIGE
+          // Shirts: White, Light blue, Blue strip
+          // Shoes: Black, Medium brown, Dark brown
+          "beige-pants": {
+            label: "Beige Pants",
+            img: "images/beige-pants.jpg",
+            shirts: [
+              shirts["white-shirt"],
+              shirts["light-blue-shirt"],
+              shirts["blue-strip-shirt"]
+            ],
+            shoes: [
+              shoes["black-shoes"],
+              shoes["medium-brown-shoes"],
+              shoes["dark-brown-shoes"]
+            ]
+          },
+
+          // 5) LIGHT JEANS
+          // Shirts: White, Black, Pink, Grey
+          // Shoes:
+          //   - Black shirt -> Black only
+          //   - White / Pink / Grey -> Black, Medium brown, Dark brown
+          "light-jeans": {
+            label: "Light Jeans",
+            img: "images/light-jeans.jpg",
+            shirts: [
+              shirts["white-shirt"],
+              shirts["black-shirt"],
+              shirts["pink-shirt"],
+              shirts["grey-shirt"]
+            ],
+            shoes: [
+              shoes["black-shoes"],
+              shoes["medium-brown-shoes"],
+              shoes["dark-brown-shoes"]
+            ],
+            shoesByShirt: {
+              "black-shirt": [
+                shoes["black-shoes"]
+              ]
+            }
+          },
+
+          // 6) DARK JEANS
+          // Shirts: White, Light blue, Blue strip, Black, Pink, Grey
+          // Shoes:
+          //   - Black shirt -> Black only
+          //   - others -> Black, Dark brown
+          "dark-jeans": {
+            label: "Dark Jeans",
+            img: "images/dark-jeans.jpg",
+            shirts: [
+              shirts["white-shirt"],
+              shirts["light-blue-shirt"],
+              shirts["blue-strip-shirt"],
+              shirts["black-shirt"],
+              shirts["pink-shirt"],
+              shirts["grey-shirt"]
+            ],
+            shoes: [
+              shoes["black-shoes"],
+              shoes["dark-brown-shoes"]
+            ],
+            shoesByShirt: {
+              "black-shirt": [
+                shoes["black-shoes"]
+              ]
+            }
+          }
+        }
+      }
+    };
+
+    // -------- STATE --------
+    let selectedJacketKey = null;
+    let selectedPantsKey = null;
+    let selectedShirtIndex = null;
+    let selectedShoeIndex = null;
+
+    const jacketsContainer = document.getElementById("jackets-container");
+    const pantsContainer   = document.getElementById("pants-container");
+    const shirtsContainer  = document.getElementById("shirts-container");
+    const shoesContainer   = document.getElementById("shoes-container");
+
+    // modal elements
+    const modal           = document.getElementById("combo-modal");
+    const modalCloseBtn   = document.getElementById("modal-close");
+    const comboBlazerImg  = document.getElementById("combo-blazer-img");
+    const comboShirtImg   = document.getElementById("combo-shirt-img");
+    const comboPantsImg   = document.getElementById("combo-pants-img");
+    const comboShoesImg   = document.getElementById("combo-shoes-img");
+
+    // -------- HELPERS --------
+    function createCard(label, imgSrc, onClick, isSelected = false) {
+      const card = document.createElement("div");
+      card.className = "item-card";
+      if (isSelected) card.classList.add("selected");
+
+      const img = document.createElement("img");
+      img.src = imgSrc;
+      img.alt = label;
+
+      const span = document.createElement("span");
+      span.className = "item-label";
+      span.textContent = label;
+
+      card.appendChild(img);
+      card.appendChild(span);
+      card.addEventListener("click", onClick);
+
+      return card;
+    }
+
+    function getShoeListForSelection() {
+      if (!selectedJacketKey || !selectedPantsKey || selectedShirtIndex === null) return [];
+      const pants = outfitData[selectedJacketKey].pants[selectedPantsKey];
+      const selectedShirt = pants.shirts[selectedShirtIndex];
+      const shirtKey = selectedShirt.key;
+
+      if (pants.shoesByShirt && pants.shoesByShirt[shirtKey]) {
+        return pants.shoesByShirt[shirtKey];
+      } else if (pants.shoes) {
+        return pants.shoes;
+      }
+      return [];
+    }
+
+    // -------- RENDER FUNCTIONS --------
+    function renderJackets() {
+      jacketsContainer.innerHTML = "";
+      Object.keys(outfitData).forEach((jacketKey) => {
+        const jacket = outfitData[jacketKey];
+        const card = createCard(
+          jacket.label,
+          jacket.img,
+          () => {
+            selectedJacketKey = jacketKey;
+            selectedPantsKey = null;
+            selectedShirtIndex = null;
+            selectedShoeIndex = null;
+            renderJackets();
+            renderPants();
+            renderShirts();
+            renderShoes();
+          },
+          jacketKey === selectedJacketKey
+        );
+        jacketsContainer.appendChild(card);
+      });
+
+      if (!selectedJacketKey) {
+        const firstKey = Object.keys(outfitData)[0];
+        selectedJacketKey = firstKey;
+        renderJackets();
+        renderPants();
+      }
+    }
+
+    function renderPants() {
+      pantsContainer.innerHTML = "";
+
+      if (!selectedJacketKey) {
+        pantsContainer.innerHTML = '<div class="empty-message">Select a blazer to see pants.</div>';
+        return;
+      }
+
+      const pantsOptions = outfitData[selectedJacketKey].pants;
+      const keys = Object.keys(pantsOptions);
+
+      if (!keys.length) {
+        pantsContainer.innerHTML = '<div class="empty-message">No pants defined yet.</div>';
+        return;
+      }
+
+      keys.forEach((pantsKey) => {
+        const pants = pantsOptions[pantsKey];
+        const card = createCard(
+          pants.label,
+          pants.img,
+          () => {
+            selectedPantsKey = pantsKey;
+            selectedShirtIndex = null;
+            selectedShoeIndex = null;
+            renderPants();
+            renderShirts();
+            renderShoes();
+          },
+          pantsKey === selectedPantsKey
+        );
+        pantsContainer.appendChild(card);
+      });
+    }
+
+    function renderShirts() {
+      shirtsContainer.innerHTML = "";
+
+      if (!selectedJacketKey || !selectedPantsKey) {
+        shirtsContainer.innerHTML = '<div class="empty-message">Select pants to see shirts.</div>';
+        return;
+      }
+
+      const pants = outfitData[selectedJacketKey].pants[selectedPantsKey];
+      if (!pants.shirts || !pants.shirts.length) {
+        shirtsContainer.innerHTML = '<div class="empty-message">No shirts defined for this combo.</div>';
+        return;
+      }
+
+      pants.shirts.forEach((shirt, index) => {
+        const card = createCard(
+          shirt.label,
+          shirt.img,
+          () => {
+            selectedShirtIndex = index;
+            selectedShoeIndex = null;
+            renderShirts();
+            renderShoes();
+          },
+          index === selectedShirtIndex
+        );
+        shirtsContainer.appendChild(card);
+      });
+    }
+
+    function renderShoes() {
+      shoesContainer.innerHTML = "";
+
+      if (!selectedJacketKey || !selectedPantsKey || selectedShirtIndex === null) {
+        shoesContainer.innerHTML = '<div class="empty-message">Select a shirt to see shoes.</div>';
+        return;
+      }
+
+      const shoeList = getShoeListForSelection();
+
+      if (!shoeList.length) {
+        shoesContainer.innerHTML = '<div class="empty-message">No shoes defined for this combo.</div>';
+        return;
+      }
+
+      shoeList.forEach((shoe, index) => {
+        const card = createCard(
+          shoe.label,
+          shoe.img,
+          () => {
+            selectedShoeIndex = index;
+            renderShoes();
+            showComboModal();
+          },
+          index === selectedShoeIndex
+        );
+        shoesContainer.appendChild(card);
+      });
+    }
+    // -------- MODAL FUNCTIONS --------
+    function showComboModal() {
+      const shoeList = getShoeListForSelection();
+      if (!shoeList.length || selectedShoeIndex === null) return;
+
+      const jacket = outfitData[selectedJacketKey];
+      const pants  = jacket.pants[selectedPantsKey];
+      const shirt  = pants.shirts[selectedShirtIndex];
+      const shoe   = shoeList[selectedShoeIndex];
+
+      comboBlazerImg.src = jacket.img;
+      comboShirtImg.src  = shirt.img;
+      comboPantsImg.src  = pants.img;
+      comboShoesImg.src  = shoe.img;
+
+      modal.classList.remove("hidden");
+    }
+
+    function hideComboModal() {
+      modal.classList.add("hidden");
+    }
+
+    modalCloseBtn.addEventListener("click", hideComboModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) hideComboModal();
+    });
+
+    // -------- INITIAL RENDER --------
+    renderJackets();
+    renderPants();
+    renderShirts();
+    renderShoes();
+  </script>
+
+</body>
+</html>
